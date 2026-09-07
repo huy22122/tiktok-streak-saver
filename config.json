@@ -3,7 +3,8 @@
     "username": "Tài khoản của tôi",
     "unique_id": "acc1",
     "targets": [
-      "Huy"
+      "Huy",
+      "test"
     ]
   },
   "streak_language": "custom",
@@ -12,5 +13,5 @@
     "06:00"
   ],
   "random_delay_minutes": 10,
-  "last_updated": "2026-09-07T16:51:23.712Z"
+  "last_updated": "2026-09-07T16:51:31.799Z"
 }
