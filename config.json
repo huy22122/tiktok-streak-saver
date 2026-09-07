@@ -10,9 +10,8 @@
   "streak_language": "custom",
   "message_template": "🔥Dậy thôi nào",
   "schedule_times": [
-    "06:00",
-    "23:53"
+    "06:00"
   ],
   "random_delay_minutes": 10,
-  "last_updated": "2026-09-07T16:51:47.310Z"
+  "last_updated": "2026-09-07T16:55:34.102Z"
 }
