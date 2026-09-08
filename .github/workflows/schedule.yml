@@ -4,6 +4,7 @@ on:
   workflow_dispatch: # Cho phép nhấn nút chạy thủ công bất cứ lúc nào
   schedule:
     - cron: "0 23 * * *"  # 06:00 VN (UTC+7)
+    - cron: "0 5 * * *"  # 12:00 VN (UTC+7)
 jobs:
   run-main:
     timeout-minutes: 20
