@@ -6,6 +6,13 @@ Cung cấp REST API đồng bộ 2 chiều với file .env, tùy chỉnh khung g
 
 import os
 import sys
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 import json
 import time
 import re
