@@ -137,6 +137,27 @@ def update_env_file(updates: dict):
     except Exception as ex:
         print(f"Lỗi đồng bộ config.json: {ex}")
 
+    # Tự động đẩy lên GitHub ngầm trong nền (background thread) để không cần nhập key
+    threading.Thread(target=auto_git_push_to_github, daemon=True).start()
+
+
+def auto_git_push_to_github():
+    """
+    Tự động commit và đẩy config.json và workflow lên GitHub
+    bằng Git Credential sẵn có trên máy mà không cần người dùng nhập key.
+    """
+    try:
+        subprocess.run(["git", "add", "config.json", ".github/workflows/schedule.yml"], capture_output=True, text=True, timeout=15)
+        diff_res = subprocess.run(["git", "diff", "--cached", "--quiet"], timeout=10)
+        if diff_res.returncode != 0:
+            subprocess.run(["git", "commit", "-m", "Cập nhật cấu hình & lịch trình từ Web Dashboard"], capture_output=True, text=True, timeout=15)
+            push_res = subprocess.run(["git", "push", "origin", "main"], capture_output=True, text=True, timeout=30)
+            if push_res.returncode == 0:
+                print("☁️ [ĐỒNG BỘ GITHUB] Đã tự động đẩy cấu hình mới lên GitHub thành công!")
+    except Exception as e:
+        print(f"Lỗi tự động đẩy GitHub: {e}")
+
+
 
 def update_github_workflow_schedule(times_vn: list):
     """

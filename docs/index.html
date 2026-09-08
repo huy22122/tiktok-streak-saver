@@ -1194,49 +1194,46 @@
     }
 
     async function syncWithGitHub() {
-      if (!githubState.token) {
-        // Thử đọc config.json công khai từ repo nếu chưa có token
+      // 1. Nếu có token, đồng bộ 2 chiều qua GitHub API
+      if (githubState.token) {
         try {
-          const res = await fetch(`https://raw.githubusercontent.com/${githubState.repo}/main/config.json?t=${Date.now()}`);
+          const url = `https://api.github.com/repos/${githubState.repo}/contents/config.json`;
+          const res = await fetch(url, {
+            headers: {
+              "Authorization": `token ${githubState.token}`,
+              "Accept": "application/vnd.github.v3+json"
+            }
+          });
+
           if (res.ok) {
-            const data = await res.json();
-            applyConfig(data);
+            const fileData = await res.json();
+            githubState.fileSha = fileData.sha;
+            githubState.isCloudConnected = true;
+            
+            const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
+            const configJson = JSON.parse(decoded);
+            applyConfig(configJson);
+            setConnected(true, "GitHub Cloud 24/7 (2 Chiều)", true);
+            showToast("🟢 Đã kết nối & đồng bộ trực tiếp với GitHub!");
+            return true;
           }
-        } catch (e) {}
-        return false;
+        } catch (e) {
+          console.error("Lỗi sync GitHub qua API:", e);
+        }
       }
 
+      // 2. Nếu không có token, tự động đọc trực tiếp config.json công khai từ repo GitHub
       try {
-        const url = `https://api.github.com/repos/${githubState.repo}/contents/config.json`;
-        const res = await fetch(url, {
-          headers: {
-            "Authorization": `token ${githubState.token}`,
-            "Accept": "application/vnd.github.v3+json"
-          }
-        });
-
+        const res = await fetch(`https://raw.githubusercontent.com/${githubState.repo}/main/config.json?t=${Date.now()}`);
         if (res.ok) {
-          const fileData = await res.json();
-          githubState.fileSha = fileData.sha;
+          const data = await res.json();
+          applyConfig(data);
           githubState.isCloudConnected = true;
-          
-          // Giải mã nội dung Base64
-          const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
-          const configJson = JSON.parse(decoded);
-          applyConfig(configJson);
-          setConnected(true, "GitHub Cloud 24/7", true);
-          showToast("🟢 Đã kết nối & đồng bộ trực tiếp với GitHub!");
-          return true;
-        } else if (res.status === 401 || res.status === 403) {
-          showToast("GitHub Token không hợp lệ hoặc hết hạn!", "error");
-        } else if (res.status === 404) {
-          // File chưa tồn tại trên repo, có thể tạo mới
-          githubState.isCloudConnected = true;
-          setConnected(true, "GitHub Cloud 24/7", true);
+          setConnected(true, "GitHub Pages / Cloud (Tự Động)", true);
           return true;
         }
       } catch (e) {
-        console.error("Lỗi sync GitHub:", e);
+        console.error("Lỗi đọc config công khai:", e);
       }
       return false;
     }
@@ -1329,7 +1326,7 @@
       }
 
       if (!connected) {
-        // Nếu không có server local, thử kết nối qua GitHub Cloud
+        // Tự động đồng bộ với GitHub Cloud ngay lập tức
         const cloudOk = await syncWithGitHub();
         if (!cloudOk) {
           setConnected(false);
@@ -1350,7 +1347,7 @@
         text.title = `Host: ${hostUrl}`;
         banner.classList.remove("active");
         if (btnConnect) {
-          btnConnect.innerText = isCloud ? "⚙️ Đổi Token" : "🔑 Kết Nối GitHub";
+          btnConnect.innerText = isCloud ? "⚙️ Token (Tùy chọn)" : "🔑 Kết Nối GitHub";
         }
       } else {
         dot.className = "sync-dot";
