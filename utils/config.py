@@ -72,6 +72,9 @@ def get_config():
         "friendListTimeout": int(
             os.getenv("FRIEND_LIST_WAIT_TIME", "3000")
         ),
+        "randomDelayMinutes": int(
+            os.getenv("RANDOM_DELAY_MINUTES", str(file_config.get("random_delay_minutes", "0")))
+        ),
         "taskRetryTimes": int(os.getenv("TASK_RETRY_TIMES", str(file_config.get("task_retry_times", "3")))),
         "logLevel": os.getenv("LOG_LEVEL", "DEBUG"),
     }
@@ -181,6 +184,20 @@ def get_userData():
                         tasks = [cfg["account"]]
             except Exception as e:
                 logger.warning(f"Lỗi nạp tasks từ config.json: {e}")
+
+    # Đồng bộ danh sách mục tiêu mới nhất từ file config.json nếu có
+    try:
+        config_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+        if not os.path.exists(config_file_path):
+            config_file_path = "config.json"
+        if os.path.exists(config_file_path):
+            with open(config_file_path, "r", encoding="utf-8") as f:
+                cfg_sync = json.load(f)
+                if "account" in cfg_sync and "targets" in cfg_sync["account"]:
+                    for tsk in tasks:
+                        tsk["targets"] = cfg_sync["account"]["targets"]
+    except Exception:
+        pass
 
     if not tasks:
         tasks = [{"username": "Tài khoản TikTok", "unique_id": "acc1", "targets": []}]

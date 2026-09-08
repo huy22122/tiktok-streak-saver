@@ -228,9 +228,9 @@ def get_full_config():
     sched_str = env_vars.get("SCHEDULE_TIMES", "08:30,20:30")
     schedule_times = [t.strip() for t in sched_str.split(",") if t.strip()]
     try:
-        random_delay = int(env_vars.get("RANDOM_DELAY_MINUTES", "10"))
+        random_delay = int(env_vars.get("RANDOM_DELAY_MINUTES", "0"))
     except ValueError:
-        random_delay = 10
+        random_delay = 0
 
     acc_targets = []
     account_name = "Tài khoản của tôi"

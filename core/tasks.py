@@ -107,10 +107,10 @@ def dismiss_popups(page):
     for text in popup_button_texts:
         try:
             button = page.locator(f'button:has-text("{text}")').first
-            if button.is_visible(timeout=500):
+            if button.is_visible(timeout=300):
                 logger.debug(f"Phát hiện popup, đang đóng: '{text}'")
                 button.click()
-                time.sleep(0.5)
+                time.sleep(0.2)
                 break
         except Exception:
             pass
@@ -148,33 +148,34 @@ def check_target_match(name_text: str, targets: list) -> str:
     return ""
 
 
-def find_chat_input_element(page, timeout=10000):
-    """Tìm khung soạn thảo tin nhắn (hỗ trợ cả chat 1-1 và nhóm)"""
+def find_chat_input_element(page, timeout=8000):
+    """Tìm khung soạn thảo tin nhắn siêu tốc (hỗ trợ cả chat 1-1 và nhóm)"""
     start_time = time.time()
     while time.time() - start_time < (timeout / 1000):
         for sel in CHAT_EDITOR_SELECTORS:
             try:
                 locator = page.locator(sel).first
-                if locator.is_visible(timeout=1000):
+                if locator.is_visible(timeout=300):
                     return locator
             except Exception:
                 continue
-        time.sleep(0.5)
+        time.sleep(0.2)
     return None
 
 
 def select_friend_conversation(page, username, targets):
     """
-    Tìm và chọn từng bạn bè hoặc nhóm chat trong danh sách hội thoại TikTok (hỗ trợ cuộn)
+    Tìm và chọn từng bạn bè hoặc nhóm chat trong danh sách hội thoại TikTok (siêu tốc, hỗ trợ cuộn)
     """
-    logger.info(f"[{username}] Bắt đầu tìm kiếm {len(targets)} mục tiêu (bạn bè/nhóm): {targets}")
+    logger.info(f"[{username}] Bắt đầu tìm kiếm {len(targets)} mục tiêu: {targets}")
 
     found_targets = set()
     remaining_targets = set(targets)
 
     # Quét danh sách hội thoại và cuộn để tìm mục tiêu
-    for scroll_idx in range(6):
+    for scroll_idx in range(8):
         dismiss_popups(page)
+        item_found_in_this_scroll = False
 
         for sel in CONVERSATION_SELECTORS:
             if len(remaining_targets) == 0:
@@ -192,23 +193,23 @@ def select_friend_conversation(page, username, targets):
                     if matched and matched not in found_targets:
                         found_targets.add(matched)
                         remaining_targets.remove(matched)
+                        item_found_in_this_scroll = True
                         logger.info(f"[{username}] Đã tìm thấy mục tiêu: '{matched}' (Tên hiển thị: '{txt}')")
                         el.click()
-                        time.sleep(2)
+                        time.sleep(0.3)
                         yield matched
-
-                        if len(remaining_targets) == 0:
-                            logger.info(f"[{username}] Đã tìm thấy tất cả mục tiêu đã cấu hình!")
-                            return
+                        break
             except Exception as e:
                 logger.debug(f"Lỗi quét phần tử: {e}")
 
         if len(remaining_targets) == 0:
-            break
+            logger.info(f"[{username}] Đã tìm thấy tất cả mục tiêu đã cấu hình!")
+            return
 
-        # Cuộn danh sách xuống để nạp thêm các hội thoại cũ hơn
-        page.mouse.wheel(0, 600)
-        time.sleep(1.5)
+        if not item_found_in_this_scroll:
+            # Cuộn danh sách xuống để nạp thêm các hội thoại cũ hơn
+            page.mouse.wheel(0, 600)
+            time.sleep(0.4)
 
     if len(remaining_targets) > 0:
         logger.warning(
@@ -218,7 +219,7 @@ def select_friend_conversation(page, username, targets):
 
 def do_user_task(browser, username, cookies, targets):
     """
-    Thực hiện gửi tin nhắn rep chuỗi TikTok (cả bạn bè và nhóm) cho một tài khoản
+    Thực hiện gửi tin nhắn rep chuỗi TikTok siêu tốc cho một tài khoản
     """
     context = browser.new_context(
         user_agent=DEFAULT_USER_AGENT,
@@ -252,12 +253,20 @@ def do_user_task(browser, username, cookies, targets):
             f"Mở {TIKTOK_MESSAGES_URL}",
             page.goto,
             retries=config["taskRetryTimes"],
-            delay=5,
+            delay=2,
             url=TIKTOK_MESSAGES_URL,
             wait_until="domcontentloaded",
         )
 
-        time.sleep(5)
+        # Chờ phần tử hội thoại xuất hiện siêu tốc thay vì ngủ 5s cố định
+        try:
+            page.wait_for_selector(
+                'span[class*="SpanNicknameText"], p[class*="PInfoNickname"], [class*="Nickname"], [data-e2e="chat-item"]',
+                timeout=4000
+            )
+        except Exception:
+            time.sleep(1)
+
         dismiss_popups(page)
 
         # Kiểm tra đăng nhập
@@ -269,55 +278,54 @@ def do_user_task(browser, username, cookies, targets):
             )
             return
 
-        logger.info(f"[{username}] Đăng nhập TikTok thành công, bắt đầu gửi tin nhắn rep chuỗi bạn bè và nhóm...")
+        logger.info(f"[{username}] Đăng nhập TikTok thành công, bắt đầu gửi tin nhắn rep chuỗi siêu tốc...")
 
         sent_count = 0
         for target_name in select_friend_conversation(page, username, targets):
             logger.info(f"[{username}] Đang soạn tin nhắn cho: {target_name}")
 
-            chat_input = find_chat_input_element(page, timeout=10000)
+            chat_input = find_chat_input_element(page, timeout=8000)
             if not chat_input:
                 logger.error(f"[{username}] Không tìm thấy khung soạn thảo tin nhắn cho '{target_name}'!")
                 continue
 
             message = build_message(target_name=target_name)
 
-            # Focus và gõ tin nhắn
+            # Focus và gõ tin nhắn siêu tốc
             chat_input.click()
-            time.sleep(0.5)
+            time.sleep(0.1)
 
-            # Gõ nội dung tin nhắn
+            # Gõ nội dung tin nhắn tức thì (delay=0)
             lines = message.split("\n")
             for i, line in enumerate(lines):
-                chat_input.type(line, delay=random.randint(15, 40))
+                chat_input.type(line, delay=0)
                 if i < len(lines) - 1:
                     chat_input.press("Shift+Enter")
-                    time.sleep(0.2)
 
-            time.sleep(0.5)
+            time.sleep(0.1)
 
             # Gửi tin nhắn bằng phím Enter
             chat_input.press("Enter")
 
-            # Fallback nút gửi
-            time.sleep(1)
+            # Fallback nút gửi (nếu phím Enter chưa kích hoạt)
+            time.sleep(0.2)
             for send_btn_sel in SEND_BUTTON_SELECTORS:
                 try:
                     btn = page.locator(send_btn_sel).first
-                    if btn.is_visible(timeout=500):
+                    if btn.is_visible(timeout=200):
                         btn.click()
                         break
                 except Exception:
                     pass
 
-            logger.info(f"✅ [{username}] Đã gửi tin nhắn giữ chuỗi tới '{target_name}':\n\t\"{message}\"")
+            logger.info(f"⚡ [{username}] Đã gửi siêu tốc tới '{target_name}': \"{message}\"")
             sent_count += 1
 
-            delay_between = random.uniform(3.0, 5.0)
-            logger.debug(f"Tạm nghỉ {delay_between:.1f}s trước khi gửi người/nhóm tiếp theo...")
+            delay_between = random.uniform(0.3, 0.6)
+            logger.debug(f"Chuyển ngay sang mục tiêu tiếp theo trong {delay_between:.1f}s...")
             time.sleep(delay_between)
 
-        logger.info(f"🎉 [{username}] Hoàn tất! Đã gửi tin nhắn rep chuỗi thành công cho {sent_count}/{len(targets)} mục tiêu (bạn bè & nhóm).")
+        logger.info(f"🎉 [{username}] Hoàn tất! Đã gửi tin nhắn rep chuỗi thành công cho {sent_count}/{len(targets)} mục tiêu.")
 
     except Exception as e:
         logger.error(f"[{username}] Xảy ra lỗi trong quá trình thực hiện: {e}")
@@ -335,9 +343,11 @@ def runTasks():
         logger.warning("⚠️ Không tìm thấy cấu hình tài khoản nào trong TASKS!")
         return
 
-    # Xử lý độ trễ ngẫu nhiên nếu được cấu hình (để thời gian gửi không bị cố định một giây nhất định)
+    # Xử lý độ trễ ngẫu nhiên nếu được cấu hình
     skip_delay = os.getenv("SKIP_RANDOM_DELAY", "false").lower() in ["true", "1", "yes"]
-    raw_delay = os.getenv("RANDOM_DELAY_MINUTES", "0").strip()
+    raw_delay = os.getenv("RANDOM_DELAY_MINUTES", "").strip()
+    if not raw_delay:
+        raw_delay = str(config.get("randomDelayMinutes", "0"))
     try:
         max_delay_min = int(raw_delay)
     except ValueError:
@@ -349,6 +359,8 @@ def runTasks():
         delay_s = delay_sec % 60
         logger.info(f"⏳ Kích hoạt độ trễ ngẫu nhiên: Chờ {delay_m} phút {delay_s} giây trước khi gửi (tránh gửi vào giờ cố định)...")
         time.sleep(delay_sec)
+    else:
+        logger.info("⚡ Chế độ siêu tốc (0s trễ ngẫu nhiên): Bắt đầu gửi ngay lập tức!")
 
     playwright, browser = get_browser()
     try:

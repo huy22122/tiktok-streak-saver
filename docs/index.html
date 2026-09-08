@@ -840,10 +840,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">🎲</div>
+        <div class="stat-icon">⚡</div>
         <div class="stat-content">
-          <div class="stat-label">Độ trễ ngẫu nhiên</div>
-          <div id="statDelay" class="stat-value">~10 phút</div>
+          <div class="stat-label">Tốc độ gửi tin</div>
+          <div id="statDelay" class="stat-value">Siêu tốc (0m trễ)</div>
         </div>
       </div>
     </section>
@@ -1121,11 +1121,11 @@
   <script>
     let state = {
       isLocalConnected: true,
-      targets: ["Huy", "test", "Zuka hơi ngu", "mai phuong."],
+      targets: ["Huy", "test"],
       language: "custom",
       template: "🔥",
       scheduleTimes: ["06:00", "12:00"],
-      randomDelayMinutes: 10,
+      randomDelayMinutes: 0,
       accountName: "Tài khoản của tôi",
       cookieCount: 76,
       rawConfig: null,
