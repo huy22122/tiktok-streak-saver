@@ -8,7 +8,7 @@ PLAYWRIGHT_BROWSERS_PATH = "../chrome"
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
 def install_browser():
@@ -24,7 +24,7 @@ def install_browser():
 
 def get_browser():
     """
-    Khởi động trình duyệt Playwright với các cờ chống phát hiện bot
+    Khởi động trình duyệt Playwright với các cờ chống phát hiện bot và tối ưu tài nguyên
     :return: (playwright, browser)
     """
 
@@ -43,7 +43,7 @@ def get_browser():
             os.path.join(os.path.dirname(sys.executable), PLAYWRIGHT_BROWSERS_PATH)
         )
 
-    # Cấu hình chống phát hiện bot (Anti-detection) cho TikTok
+    # Cấu hình chống phát hiện bot và tiết kiệm RAM/CPU cho TikTok
     launch_args = [
         "--disable-blink-features=AutomationControlled",
         "--no-sandbox",
@@ -52,6 +52,9 @@ def get_browser():
         "--disable-dev-shm-usage",
         "--no-first-run",
         "--ignore-certificate-errors",
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--mute-audio",
     ]
 
     try:

@@ -5,6 +5,15 @@ Công cụ tự động đăng nhập TikTok, trích xuất Cookie và tạo fil
 
 import os
 import sys
+
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 import json
 import time
 from playwright.sync_api import sync_playwright

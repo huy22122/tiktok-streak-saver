@@ -868,7 +868,10 @@
                 Chọn chế độ giờ phổ biến hoặc tự thêm giờ theo ý bạn:
               </label>
               <div class="schedule-presets">
-                <button class="preset-btn active" id="preset_morning_6h" onclick="applyPreset(['06:00'], 'morning_6h')">
+                <button class="preset-btn active" id="preset_morning_afternoon" onclick="applyPreset(['06:00', '17:00'], 'morning_afternoon')">
+                  ⚡ 6h Sáng & 17h Chiều
+                </button>
+                <button class="preset-btn" id="preset_morning_6h" onclick="applyPreset(['06:00'], 'morning_6h')">
                   🌅 06:00 Sáng Mỗi Ngày
                 </button>
                 <button class="preset-btn" id="preset_morning_night" onclick="applyPreset(['06:00', '20:30'], 'morning_night')">
@@ -890,7 +893,7 @@
               </div>
 
               <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem;">
-                <input type="time" id="newTimePicker" class="input-text" style="max-width: 140px;" value="06:00">
+                <input type="time" id="newTimePicker" class="input-text" style="max-width: 140px;" value="17:00">
                 <button class="btn btn-secondary btn-sm" onclick="addNewTime()">
                   <span>+</span> Thêm giờ này
                 </button>
@@ -901,18 +904,18 @@
             <div class="delay-box">
               <div style="display: flex; align-items: center; justify-content: space-between;">
                 <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-main);">
-                  🎲 Độ trễ ngẫu nhiên (Random Delay):
+                  ⚡ Tốc độ / Độ trễ gửi tin:
                 </span>
                 <select id="selectDelay" class="select-input" onchange="updateRandomDelay(this.value)">
-                  <option value="0">Tắt (Gửi đúng giờ)</option>
-                  <option value="5">Trễ 1 ~ 5 phút</option>
-                  <option value="10" selected>Trễ 1 ~ 10 phút (Khuyên dùng)</option>
+                  <option value="0" selected>⚡ Siêu tốc (0s trễ - Gửi đúng giờ)</option>
+                  <option value="5">Trễ 1 ~ 5 phút (Ngẫu nhiên)</option>
+                  <option value="10">Trễ 1 ~ 10 phút (Ngẫu nhiên)</option>
                   <option value="15">Trễ 1 ~ 15 phút</option>
                   <option value="25">Trễ 1 ~ 25 phút</option>
                 </select>
               </div>
               <p style="font-size: 0.74rem; color: var(--text-dim); line-height: 1.4;">
-                🛡️ <strong>Lợi ích:</strong> Bot sẽ tự động cộng ngẫu nhiên thêm vài phút trước khi gửi tin (ví dụ hẹn 06:00 thì hôm nay gửi lúc 06:02, mai gửi lúc 06:07...). Tránh việc ngày nào cũng gửi đúng từng giây cố định khiến TikTok nghi ngờ!
+                🛡️ <strong>Lựa chọn tốc độ:</strong> Chọn <strong>Siêu tốc (0s)</strong> để bot bắn tin nhắn ngay lập tức khi đến giờ hẹn, hoặc chọn thêm số phút trễ ngẫu nhiên để đổi giờ mỗi ngày tránh TikTok chú ý.
               </p>
             </div>
 

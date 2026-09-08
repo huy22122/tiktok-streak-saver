@@ -116,6 +116,29 @@ def dismiss_popups(page):
             pass
 
 
+def check_security_challenges(page, username):
+    """Kiểm tra xem TikTok có yêu cầu xác minh Captcha hoặc bảo mật không"""
+    captcha_selectors = [
+        '[class*="captcha"]',
+        '#captcha-verify-image',
+        '[data-e2e="verify-code"]',
+        '.sec-captcha',
+        '#secsdk-captcha-drag-wrapper',
+        'div[class*="verify-bar"]',
+    ]
+    for sel in captcha_selectors:
+        try:
+            if page.locator(sel).first.is_visible(timeout=200):
+                logger.warning(
+                    f"⚠️ [{username}] Phát hiện yêu cầu xác minh Captcha/Bảo mật từ TikTok! "
+                    "Vui lòng chạy '1_Dang_Nhap_Lay_Cookie.bat' trên máy tính để hoàn thành xác minh và cập nhật cookie mới."
+                )
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def check_target_match(name_text: str, targets: list) -> str:
     """
     Kiểm tra tên bạn bè hoặc tên nhóm chat có khớp với danh sách targets không
@@ -167,9 +190,32 @@ def select_friend_conversation(page, username, targets):
     """
     Tìm và chọn từng bạn bè hoặc nhóm chat trong danh sách hội thoại TikTok (siêu tốc, hỗ trợ cuộn)
     """
-    logger.info(f"[{username}] Bắt đầu tìm kiếm {len(targets)} mục tiêu: {targets}")
-
     found_targets = set()
+
+    # Nếu không cấu hình mục tiêu cụ thể: tự động rep tối đa 5 cuộc trò chuyện gần nhất trong hộp thư
+    if not targets:
+        logger.info(f"[{username}] Chưa đặt mục tiêu bạn bè, tự động rep các cuộc trò chuyện gần nhất...")
+        dismiss_popups(page)
+        for sel in CONVERSATION_SELECTORS:
+            try:
+                elements = page.locator(sel).all()
+                for el in elements[:5]:
+                    if not el.is_visible():
+                        continue
+                    txt = el.inner_text().strip()
+                    if txt and txt not in found_targets:
+                        found_targets.add(txt)
+                        logger.info(f"[{username}] Tự động chọn cuộc trò chuyện gần nhất: '{txt}'")
+                        el.click()
+                        time.sleep(0.3)
+                        yield txt
+                        if len(found_targets) >= 5:
+                            return
+            except Exception as e:
+                logger.debug(f"Lỗi quét hội thoại: {e}")
+        return
+
+    logger.info(f"[{username}] Bắt đầu tìm kiếm {len(targets)} mục tiêu: {targets}")
     remaining_targets = set(targets)
 
     # Quét danh sách hội thoại và cuộn để tìm mục tiêu
@@ -268,6 +314,7 @@ def do_user_task(browser, username, cookies, targets):
             time.sleep(1)
 
         dismiss_popups(page)
+        check_security_challenges(page, username)
 
         # Kiểm tra đăng nhập
         current_url = page.url.lower()
@@ -331,7 +378,14 @@ def do_user_task(browser, username, cookies, targets):
         logger.error(f"[{username}] Xảy ra lỗi trong quá trình thực hiện: {e}")
         traceback.print_exc()
     finally:
-        context.close()
+        try:
+            page.close()
+        except Exception:
+            pass
+        try:
+            context.close()
+        except Exception:
+            pass
 
 
 def runTasks():

@@ -14,6 +14,7 @@ echo         Nhan Ctrl + C de dong may chu khi hoan tat.
 echo ======================================================================
 echo.
 
+set PYTHONIOENCODING=utf-8
 python app_manager.py
 if %ERRORLEVEL% NEQ 0 (
     echo.
