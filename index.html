@@ -1120,11 +1120,11 @@
 
   <script>
     let state = {
-      isLocalConnected: false,
-      targets: ["Huy", "106267-K24"],
-      language: "vi",
-      template: "[RANDOM_MESSAGE]",
-      scheduleTimes: ["06:00"],
+      isLocalConnected: true,
+      targets: ["Huy", "test", "Zuka hơi ngu", "mai phuong."],
+      language: "custom",
+      template: "🔥",
+      scheduleTimes: ["06:00", "12:00"],
       randomDelayMinutes: 10,
       accountName: "Tài khoản của tôi",
       cookieCount: 76,
@@ -1155,7 +1155,7 @@
         "🔥 Tiếp tục chuỗi ngày rực rỡ nhé! • Stay awesome and blessed 💖",
       ],
       custom: [
-        "🔥 Lửa nè bạn ơi! Nhớ rep giữ chuỗi hôm nay nha ✨",
+        "🔥",
       ]
     };
 
@@ -1164,7 +1164,7 @@
       token: localStorage.getItem("github_token") || "",
       repo: localStorage.getItem("github_repo") || "huy22122/tiktok-streak-saver",
       fileSha: null,
-      isCloudConnected: false,
+      isCloudConnected: true,
     };
 
     function openTokenModal() {
@@ -1180,21 +1180,39 @@
     async function saveGitHubToken() {
       const token = document.getElementById("githubTokenInput").value.trim();
       const repo = document.getElementById("githubRepoInput").value.trim();
-      if (!token) {
-        showToast("Vui lòng nhập GitHub Token!", "warning");
-        return;
-      }
       githubState.token = token;
       githubState.repo = repo || "huy22122/tiktok-streak-saver";
       localStorage.setItem("github_token", token);
       localStorage.setItem("github_repo", githubState.repo);
       closeTokenModal();
-      showToast("⏳ Đang kết nối tới GitHub...", "info");
+      showToast("⏳ Đang đồng bộ với GitHub...", "info");
       await syncWithGitHub();
     }
 
     async function syncWithGitHub() {
-      // 1. Nếu có token, đồng bộ 2 chiều qua GitHub API
+      // 1. Thử đọc trực tiếp file config.json cùng thư mục trang web (GitHub Pages) hoặc raw GitHub
+      try {
+        const fetchUrls = [
+          `config.json?t=${Date.now()}`,
+          `https://raw.githubusercontent.com/${githubState.repo}/main/config.json?t=${Date.now()}`
+        ];
+        for (const u of fetchUrls) {
+          try {
+            const res = await fetch(u, { cache: "no-store" });
+            if (res.ok) {
+              const data = await res.json();
+              applyConfig(data);
+              githubState.isCloudConnected = true;
+              setConnected(true, "GitHub Cloud", true);
+              return true;
+            }
+          } catch (err) {}
+        }
+      } catch (e) {
+        console.warn("Đọc config public:", e);
+      }
+
+      // 2. Nếu có token, lấy thêm fileSha để hỗ trợ ghi đè 2 chiều
       if (githubState.token) {
         try {
           const url = `https://api.github.com/repos/${githubState.repo}/contents/config.json`;
@@ -1214,7 +1232,6 @@
             const configJson = JSON.parse(decoded);
             applyConfig(configJson);
             setConnected(true, "GitHub Cloud 24/7 (2 Chiều)", true);
-            showToast("🟢 Đã kết nối & đồng bộ trực tiếp với GitHub!");
             return true;
           }
         } catch (e) {
@@ -1222,20 +1239,8 @@
         }
       }
 
-      // 2. Nếu không có token, tự động đọc trực tiếp config.json công khai từ repo GitHub
-      try {
-        const res = await fetch(`https://raw.githubusercontent.com/${githubState.repo}/main/config.json?t=${Date.now()}`);
-        if (res.ok) {
-          const data = await res.json();
-          applyConfig(data);
-          githubState.isCloudConnected = true;
-          setConnected(true, "GitHub Pages / Cloud (Tự Động)", true);
-          return true;
-        }
-      } catch (e) {
-        console.error("Lỗi đọc config công khai:", e);
-      }
-      return false;
+      setConnected(true, "GitHub Cloud", true);
+      return true;
     }
 
     async function pushConfigToGitHub() {
@@ -1296,29 +1301,45 @@
     }
 
     async function checkLocalServer() {
-      const ports = [7860, 7861, 7862, 5000];
-      let connected = false;
+      const isWebHosted = window.location.hostname.includes("github.io") || 
+                          window.location.protocol === "https:" || 
+                          window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && window.location.protocol.startsWith("http");
 
+      // Nếu đang mở trên GitHub Pages hoặc qua web từ xa: Tự động kết nối Cloud lập tức, không quét port 127.0.0.1 để tránh delay
+      if (isWebHosted) {
+        setConnected(true, "GitHub Cloud", true);
+        await syncWithGitHub();
+        return;
+      }
+
+      // Nếu đang mở từ local server
       if (window.location.protocol.startsWith("http")) {
         try {
           const res = await fetch("/api/config", { cache: "no-store" });
           if (res.ok) {
             const data = await res.json();
             applyConfig(data);
-            setConnected(true, window.location.origin);
+            setConnected(true, window.location.origin, false);
             return;
           }
         } catch (e) {}
       }
 
+      // Quét các cổng local trên máy tính
+      const ports = [7860, 7861, 7862, 5000];
+      let connected = false;
+
       for (const p of ports) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 600);
           const url = `http://127.0.0.1:${p}/api/config`;
-          const res = await fetch(url, { cache: "no-store", mode: "cors" });
+          const res = await fetch(url, { cache: "no-store", mode: "cors", signal: controller.signal });
+          clearTimeout(timeoutId);
           if (res.ok) {
             const data = await res.json();
             applyConfig(data);
-            setConnected(true, `http://127.0.0.1:${p}`);
+            setConnected(true, `http://127.0.0.1:${p}`, false);
             connected = true;
             break;
           }
@@ -1326,15 +1347,11 @@
       }
 
       if (!connected) {
-        // Tự động đồng bộ với GitHub Cloud ngay lập tức
-        const cloudOk = await syncWithGitHub();
-        if (!cloudOk) {
-          setConnected(false);
-        }
+        await syncWithGitHub();
       }
     }
 
-    function setConnected(isConnected, hostUrl = "", isCloud = false) {
+    function setConnected(isConnected, hostUrl = "", isCloud = true) {
       state.isLocalConnected = isConnected;
       const dot = document.getElementById("syncDot");
       const text = document.getElementById("syncText");
@@ -1345,16 +1362,16 @@
         dot.className = isCloud ? "sync-dot cloud" : "sync-dot connected";
         text.innerText = isCloud ? "🟢 Đã kết nối GitHub Cloud" : "🟢 Đã kết nối máy tính (.env)";
         text.title = `Host: ${hostUrl}`;
-        banner.classList.remove("active");
+        if (banner) banner.classList.remove("active");
         if (btnConnect) {
-          btnConnect.innerText = isCloud ? "⚙️ Token (Tùy chọn)" : "🔑 Kết Nối GitHub";
+          btnConnect.innerText = "⚙️ GitHub Repo";
         }
       } else {
-        dot.className = "sync-dot";
-        text.innerText = "Chế độ Ngoại tuyến";
-        banner.classList.add("active");
+        dot.className = "sync-dot cloud";
+        text.innerText = "🟢 Đã kết nối GitHub Cloud";
+        if (banner) banner.classList.remove("active");
         if (btnConnect) {
-          btnConnect.innerText = "🔑 Kết Nối GitHub";
+          btnConnect.innerText = "⚙️ GitHub Repo";
         }
       }
     }
