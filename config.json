@@ -5,7 +5,8 @@
     "targets": [
       "Huy",
       "test",
-      "mai phuong."
+      "mai phuong.",
+      "Zuka hơi ngu"
     ]
   },
   "streak_language": "custom",
@@ -17,5 +18,5 @@
   "random_delay_minutes": 0,
   "browser_timeout": 120000,
   "task_retry_times": 3,
-  "last_updated": "2026-09-09T03:36:45Z"
+  "last_updated": "2026-09-09T03:36:56Z"
 }
